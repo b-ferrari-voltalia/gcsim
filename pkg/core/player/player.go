@@ -36,6 +36,9 @@ type Handler struct {
 	Shields *shield.Handler
 	infusion.Handler
 
+	// party conditional
+	HasWitchBonus bool
+
 	// tracking
 	chars   []*character.CharWrapper
 	active  int
@@ -253,15 +256,21 @@ func (h *Handler) ApplyHitlag(char int, factor, dur float64) {
 }
 
 // InitializeTeam will set up resonance event hooks and calculate
-// all character base stats
+// all character base stats 
 func (h *Handler) InitializeTeam() error {
 	var err error
+	witchCount := 0
 	for _, c := range h.chars {
 		err = c.UpdateBaseStats()
 		if err != nil {
 			return err
 		}
+		if c.IsWitch {
+            witchCount++
+        }
 	}
+    h.HasWitchBonus = witchCount >= 2
+
 	// loop again to initialize
 	for i := range h.chars {
 		err = h.chars[i].Init()
