@@ -27,6 +27,7 @@ type char struct {
 func NewChar(s *core.Core, w *character.CharWrapper, _ info.CharacterProfile) error {
 	c := char{}
 	c.Character = tmpl.NewWithWrapper(s, w)
+	c.IsWitch   = true
 
 	c.EnergyMax = 80
 	c.NormalHitNum = normalHitNum
@@ -44,6 +45,9 @@ func NewChar(s *core.Core, w *character.CharWrapper, _ info.CharacterProfile) er
 
 func (c *char) Init() error {
 	c.a1()
+
+	
+
 	if c.Base.Cons >= 6 {
 		c.c6buff = make([]float64, attributes.EndStatType)
 	}
