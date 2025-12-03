@@ -99,6 +99,7 @@ type CharWrapper struct {
 	SkillCon  int
 	BurstCon  int
 	HasArkhe  bool
+	IsWitch   bool
 
 	Equip struct {
 		Weapon info.Weapon
