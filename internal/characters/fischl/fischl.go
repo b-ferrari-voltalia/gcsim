@@ -25,16 +25,12 @@ type char struct {
 	ozTravel        int
 	burstOzSpawnSrc int // prevent double oz spawn from burst
 	c6Watcher       *minazuki.Watcher
-
-	// fields used for calculate witch buffs
-	c6WBDuration      int     // 600 by default
-	c6WBExpiry        int     // Expiry frame when c6 WB buff stop
 }
 
 func NewChar(s *core.Core, w *character.CharWrapper, p info.CharacterProfile) error {
 	c := char{}
 	c.Character = tmpl.NewWithWrapper(s, w)
-	c.IsWitch   = true
+	c.IsWitch = true
 
 	c.EnergyMax = 60
 	c.NormalHitNum = normalHitNum
@@ -44,9 +40,6 @@ func NewChar(s *core.Core, w *character.CharWrapper, p info.CharacterProfile) er
 	c.ozSource = -1
 	c.ozActive = false
 	c.ozTickSrc = -1
-
-	c.c6WBDuration 	 = 600
-	c.c6WBExpiry 	 = 0
 
 	c.ozTravel = 10
 	travel, ok := p.Params["oz_travel"]
@@ -64,8 +57,8 @@ func (c *char) Init() error {
 
 	// Witch Bonus
 	if c.Core.Player.HasWitchBonus {
-        c.registerWitchBonus()
-    }
+		c.registerWitchBonus()
+	}
 
 	if c.Base.Cons >= 6 {
 		w, err := minazuki.New(
@@ -113,96 +106,4 @@ func (c *char) AnimationStartDelay(k info.AnimationDelayKey) int {
 		return 9
 	}
 	return c.Character.AnimationStartDelay(k)
-}
-
-func (c *char) c6WitchBuffTimer() {
-    c.c6WBExpiry = c.Core.F + 600 // dura 10s
-}
-
-func (c *char) registerWitchBonus() {
-	c.Core.Events.Subscribe(core.OnReaction, func(args ...any) bool {
-		r := args[0].(core.ReactionEvent)
-
-		switch r.Type {
-		// Overload -> 22.5% ATK for Fischl and Active character for 10s ( Buff stays in the new active character on swap )
-		case core.ReactionOverload:
-			// Fischl Buff ( Always )
-			c.AddStatMod(character.StatMod{
-				Base: witchAtkBuffKey,
-				AffectedStat: []stat.Stat{stat.ATKP},
-				Amount: func() ([]float64, bool) {
-					vals := make([]float64, stat.EndStatType)
-					atk := 0.225
-					if c.Core.F < c.c6WBExpiry {
-						atk *= 2
-					}
-					vals[stat.ATKP] = atk
-    				return vals, true
-				},
-				Duration: c.c6WBDuration,
-			})
-			// Active Character Buff
-			for _, char := range c.Core.Player.Chars() {
-				char := char
-				char.AddStatMod(character.StatMod{
-					Base: witchAtkBuffKey + "-team",
-					AffectedStat: []stat.Stat{stat.ATKP},
-					Amount: func() ([]float64, bool) {
-						vals := make([]float64, stat.EndStatType)
-						// Only Active
-						atk := 0.225
-						if char.Index == c.Core.Player.Active() && char.Index != c.Index {  // ( Fischl Skip )
-							if c.Core.F < c.c6WBExpiry {
-								atk *= 2
-							}
-							vals[stat.ATKP] = atk
-							return vals, true
-						}
-						return vals, false
-					},
-					Duration: c.c6WBDuration,
-				})
-			}
-		// ElectroCharged and LunarCharged -> 90 EM for Fischl and Active character for 10s ( Buff stays in the new active character on swap )
-		case core.ReactionElectroCharged: // ⚠ Add lunar EC here
-			// Fischl Buff ( Always )
-			c.AddStatMod(character.StatMod{
-				Base: witchEmBuffKey,
-				AffectedStat: []stat.Stat{stat.EM},
-				Amount: func() ([]float64, bool) {
-					vals := make([]float64, stat.EndStatType)
-					em := 90
-					if c.Core.F < c.c6WBExpiry {
-						em *= 2
-					}
-					vals[stat.EM] = em
-    				return vals, true
-				},
-				Duration: c.c6WBDuration,
-			})
-			// Active Character Buff
-			for _, char := range c.Core.Player.Chars() {
-				char := char
-				char.AddStatMod(character.StatMod{
-					Base: witchEmBuffKey + "-team",
-					AffectedStat: []stat.Stat{stat.EM},
-					Amount: func() ([]float64, bool) {
-						vals := make([]float64, stat.EndStatType)
-						em := 90
-						if char.Index == c.Core.Player.Active() && char.Index != c.Index {  // ( Fischl Skip )
-							if c.Core.F < c.c6WBExpiry {
-								em *= 2
-							}
-							vals[stat.EM] = em
-							return vals, true
-						}
-						return vals, false
-					},
-					Duration: c.c6WBDuration,
-				})
-			}
-		}
-
-		return false
-	}, "fischl-witch-bonus")
 }
